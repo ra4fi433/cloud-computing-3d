@@ -1,0 +1,15 @@
+/* Ganti warna latar sidebar Filament */
+.fi-sidebar {
+    background-color: #004eb5  !important; /* slate-800, bisa ganti warna sesukamu */
+}
+
+/* Opsional: ganti warna teks */
+.fi-sidebar nav a {
+    color: #ffffff !important;
+}
+
+
+Ganti background sidebar
+.sidebar {
+    background-color: #004eb5 !important;
+}

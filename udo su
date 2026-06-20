@@ -1,0 +1,613 @@
+[4mSUDO[24m(8)                                         System Manager's Manual                                       [4mSUDO[24m(8)
+
+[1mNAME[0m
+       sudo, sudoedit — execute a command as another user
+
+[1mSYNOPSIS[0m
+       [1msudo -h [22m| [1m-K [22m| [1m-k [22m| [1m-V[0m
+       [1msudo -v [22m[[1m-ABkNnS[22m] [[1m-g [4m[22mgroup[24m] [[1m-h [4m[22mhost[24m] [[1m-p [4m[22mprompt[24m] [[1m-u [4m[22muser[24m]
+       [1msudo -l [22m[[1m-ABkNnS[22m] [[1m-g [4m[22mgroup[24m] [[1m-h [4m[22mhost[24m] [[1m-p [4m[22mprompt[24m] [[1m-U [4m[22muser[24m] [[1m-u [4m[22muser[24m] [[4mcommand[24m [[4marg[24m [4m...[24m]]
+       [1msudo  [22m[[1m-ABbEHnPS[22m]  [[1m-C [4m[22mnum[24m] [[1m-D [4m[22mdirectory[24m] [[1m-g [4m[22mgroup[24m] [[1m-h [4m[22mhost[24m] [[1m-p [4m[22mprompt[24m] [[1m-R [4m[22mdirectory[24m] [[1m-r [4m[22mrole[24m] [[1m-t [4m[22mtype[24m]
+            [[1m-T [4m[22mtimeout[24m] [[1m-u [4m[22muser[24m] [[4mVAR[24m=[4mvalue[24m] [[1m-i [22m| [1m-s[22m] [[4mcommand[24m [[4marg[24m [4m...[24m]]
+       [1msudoedit [22m[[1m-ABkNnS[22m] [[1m-C [4m[22mnum[24m] [[1m-D [4m[22mdirectory[24m] [[1m-g [4m[22mgroup[24m] [[1m-h [4m[22mhost[24m] [[1m-p [4m[22mprompt[24m] [[1m-R [4m[22mdirectory[24m] [[1m-r [4m[22mrole[24m] [[1m-t [4m[22mtype[24m]
+            [[1m-T [4m[22mtimeout[24m] [[1m-u [4m[22muser[24m] [4mfile[24m [4m...[0m
+
+[1mDESCRIPTION[0m
+       [1msudo [22mallows a permitted user to execute a [4mcommand[24m as the superuser or another user, as specified by the  secu‐
+       rity  policy.   The invoking user's real ([4mnot[24m effective) user-ID is used to determine the user name with which
+       to query the security policy.
+
+       [1msudo [22msupports a plugin architecture for security policies, auditing, and input/output logging.  Third  parties
+       can develop and distribute their own plugins to work seamlessly with the [1msudo [22mfront-end.  The default security
+       policy  is [4msudoers[24m, which is configured via the file [4m/etc/sudoers[24m, or via LDAP.  See the “Plugins” section for
+       more information.
+
+       The security policy determines what privileges, if any, a user has to run [1msudo[22m.  The policy may  require  that
+       users  authenticate  themselves with a password or another authentication mechanism.  If authentication is re‐
+       quired, [1msudo [22mwill exit if the user's password is not entered within a configurable time limit.  This limit  is
+       policy-specific; the default password prompt timeout for the [4msudoers[24m security policy is 0 minutes.
+
+       Security  policies  may  support  credential  caching to allow the user to run [1msudo [22magain for a period of time
+       without requiring authentication.  By default, the [4msudoers[24m policy caches credentials on a  per-terminal  basis
+       for  15 minutes.  See the [4mtimestamp_type[24m and [4mtimestamp_timeout[24m options in [4msudoers[24m(5) for more information.  By
+       running [1msudo [22mwith the [1m-v [22moption, a user can update the cached credentials without running a [4mcommand[24m.
+
+       On systems where [1msudo [22mis the primary method of gaining superuser privileges, it is imperative to avoid  syntax
+       errors  in  the  security policy configuration files.  For the default security policy, [4msudoers[24m(5), changes to
+       the configuration files should be made using the [4mvisudo[24m(8) utility which will ensure that no syntax errors are
+       introduced.
+
+       When invoked as [1msudoedit[22m, the [1m-e [22moption (described below), is implied.
+
+       Security policies and audit plugins may log successful and failed attempts to run [1msudo[22m.  If an I/O  plugin  is
+       configured, the running [4mcommand[24m's input and output may be logged as well.
+
+       The options are as follows:
+
+       [1m-A[22m, [1m--askpass[0m
+               Normally,  if [1msudo [22mrequires a password, it will read it from the user's terminal.  If the [1m-A [22m([4maskpass[24m)
+               option is specified, a (possibly graphical) helper program is executed to read the user's password and
+               output the password to the standard output.  If the SUDO_ASKPASS environment variable is set, it spec‐
+               ifies the path to the helper program.  Otherwise, if  [4msudo.conf[24m(5)  contains  a  line  specifying  the
+               askpass program, that value will be used.  For example:
+
+                   # Path to askpass helper program
+                   Path askpass /usr/X11R6/bin/ssh-askpass
+
+               If no askpass program is available, [1msudo [22mwill exit with an error.
+
+       [1m-B[22m, [1m--bell[0m
+               Ring the bell as part of the password prompt when a terminal is present.  This option has no effect if
+               an askpass program is used.
+
+       [1m-b[22m, [1m--background[0m
+               Run  the  given  [4mcommand[24m in the background.  It is not possible to use shell job control to manipulate
+               background processes started by [1msudo[22m.  Most interactive [4mcommand[24ms will fail to work properly  in  back‐
+               ground mode.
+
+       [1m-C [4m[22mnum[24m, [1m--close-from[22m=[4mnum[0m
+               Close  all file descriptors greater than or equal to [4mnum[24m before executing a [4mcommand[24m.  Values less than
+               three are not permitted.  By default, [1msudo [22mwill close all open file descriptors  other  than  standard
+               input, standard output, and standard error when executing a [4mcommand[24m.  The security policy may restrict
+               the  user's ability to use this option.  The [4msudoers[24m policy only permits use of the [1m-C [22moption when the
+               administrator has enabled the [4mclosefrom_override[24m option.
+
+       [1m-D [4m[22mdirectory[24m, [1m--chdir[22m=[4mdirectory[0m
+               Run the [4mcommand[24m in the specified [4mdirectory[24m instead of the current  working  directory.   The  security
+               policy may return an error if the user does not have permission to specify the working directory.
+
+       [1m-E[22m, [1m--preserve-env[0m
+               Indicates  to  the  security  policy that the user wishes to preserve their existing environment vari‐
+               ables.  The security policy may return an error if the user does not have permission to  preserve  the
+               environment.
+
+       [1m--preserve-env=list[0m
+               Indicates  to  the security policy that the user wishes to add the comma-separated list of environment
+               variables to those preserved from the user's environment.  The security policy may return an error  if
+               the  user does not have permission to preserve the environment.  This option may be specified multiple
+               times.
+
+       [1m-e[22m, [1m--edit[0m
+               Edit one or more [4mfile[24ms instead of running a [4mcommand[24m.  In lieu of a path name, the string "sudoedit" is
+               used when consulting the security policy.  If the user is authorized  by  the  policy,  the  following
+               steps are taken:
+
+               1.   Temporary copies are made of the files to be edited with the owner set to the invoking user.
+
+               2.   The  editor  specified by the policy is run to edit the temporary files.  The [4msudoers[24m policy uses
+                    the  SUDO_EDITOR,  VISUAL  and  EDITOR  environment  variables  (in  that  order).   If  none  of
+                    SUDO_EDITOR,  VISUAL  or EDITOR are set, the first program listed in the [4meditor[24m [4msudoers[24m(5) option
+                    is used.
+
+               3.   If they have been modified, the temporary files are copied back to their  original  location  and
+                    the temporary versions are removed.
+
+               To  help prevent the editing of unauthorized files, the following restrictions are enforced unless ex‐
+               plicitly allowed by the security policy:
+
+                [1m•  [22mSymbolic links may not be edited (version 1.8.15 and higher).
+
+                [1m•  [22mSymbolic links along the path to be edited are not followed when the parent directory is  writable
+                   by the invoking user unless that user is root (version 1.8.16 and higher).
+
+                [1m•  [22mFiles  located  in a directory that is writable by the invoking user may not be edited unless that
+                   user is root (version 1.8.16 and higher).
+
+               Users are never allowed to edit device special files.
+
+               If the specified file does not exist, it will be created.  Unlike most [4mcommand[24ms run by [4msudo[24m, the  edi‐
+               tor is run with the invoking user's environment unmodified.  If the temporary file becomes empty after
+               editing, the user will be prompted before it is installed.  If, for some reason, [1msudo [22mis unable to up‐
+               date  a  file with its edited version, the user will receive a warning and the edited copy will remain
+               in a temporary file.
+
+       [1m-g [4m[22mgroup[24m, [1m--group[22m=[4mgroup[0m
+               Run the [4mcommand[24m with the primary group set to [4mgroup[24m instead of the primary group specified by the tar‐
+               get user's password database entry.  The [4mgroup[24m may be either a group name or a numeric group-ID  (GID)
+               prefixed  with the ‘#’ character (e.g., ‘#0’ for GID 0).  When running a [4mcommand[24m as a GID, many shells
+               require that the ‘#’ be escaped with a backslash (‘\’).  If no [1m-u [22moption  is  specified,  the  [4mcommand[0m
+               will  be  run  as  the  invoking  user.   In either case, the primary group will be set to [4mgroup[24m.  The
+               [4msudoers[24m policy permits any of the target user's groups to be specified via the [1m-g [22moption  as  long  as
+               the [1m-P [22moption is not in use.
+
+       [1m-H[22m, [1m--set-home[0m
+               Request  that the security policy set the HOME environment variable to the home directory specified by
+               the target user's password database entry.  Depending on the policy, this may be the default behavior.
+
+       [1m-h[22m, [1m--help[0m
+               Display a short help message to the standard output and exit.
+
+       [1m-h [4m[22mhost[24m, [1m--host[22m=[4mhost[0m
+               Run the [4mcommand[24m on the specified [4mhost[24m if the security policy  plugin  supports  remote  [4mcommand[24ms.  The
+               [4msudoers[24m  plugin  does not currently support running remote [4mcommand[24ms. This may also be used in conjunc‐
+               tion with the [1m-l [22moption to list a user's privileges for the remote host.
+
+       [1m-i[22m, [1m--login[0m
+               Run the shell specified by the target user's password database entry as a  login  shell.   This  means
+               that  login-specific  resource  files  such  as [4m.profile[24m, [4m.bash_profile[24m, or [4m.login[24m will be read by the
+               shell.  If a [4mcommand[24m is specified, it is passed to the shell as a simple [4mcommand[24m using the [1m-c  [22moption.
+               The  [4mcommand[24m  and  any  [4marg[24ms  are  concatenated,  separated  by  spaces, after escaping each character
+               (including white space) with a backslash (‘\’) except for  alphanumerics,  underscores,  hyphens,  and
+               dollar  signs.  If no [4mcommand[24m is specified, an interactive shell is executed.  [1msudo [22mattempts to change
+               to that user's home directory before running the shell.  The [4mcommand[24m is run with an environment  simi‐
+               lar to the one a user would receive at log in.  Most shells behave differently when a [4mcommand[24m is spec‐
+               ified  as  compared  to  an  interactive session; consult the shell's manual for details.  The [4mCommand[0m
+               [4menvironment[24m section in the [4msudoers[24m(5) manual documents how the [1m-i [22moption affects  the  environment  in
+               which a [4mcommand[24m is run when the [4msudoers[24m policy is in use.
+
+       [1m-K[22m, [1m--remove-timestamp[0m
+               Similar  to  the [1m-k [22moption, except that it removes every cached credential for the user, regardless of
+               the terminal or parent process ID.  The next time [1msudo [22mis run, a password must be entered if the secu‐
+               rity policy requires authentication.  It is not possible to use the [1m-K [22moption in  conjunction  with  a
+               [4mcommand[24m  or other option.  This option does not require a password.  Not all security policies support
+               credential caching.
+
+       [1m-k[22m, [1m--reset-timestamp[0m
+               When used without a [4mcommand[24m, invalidates the user's cached credentials for the current  session.   The
+               next  time  [1msudo [22mis run in the session, a password must be entered if the security policy requires au‐
+               thentication.  By default, the [1msudoers [22mpolicy uses a separate record in the credential cache for  each
+               terminal (or parent process ID if no terminal is present).  This prevents the [1m-k [22moption from interfer‐
+               ing  with  [1msudo  [22mcommands  run  in  a  different  terminal  session.  See the [4mtimestamp_type[24m option in
+               [4msudoers[24m(5) for more information.  This option does not require a password, and was added  to  allow  a
+               user to revoke [1msudo [22mpermissions from a [4m.logout[24m file.
+
+               When  used  in  conjunction  with a [4mcommand[24m or an option that may require a password, this option will
+               cause [1msudo [22mto ignore the user's cached credentials.  As a result, [1msudo [22mwill prompt for a password  (if
+               one is required by the security policy) and will not update the user's cached credentials.
+
+               Not all security policies support credential caching.
+
+       [1m-l[22m, [1m--list[0m
+               If no [4mcommand[24m is specified, list the privileges for the invoking user (or the [4muser[24m specified by the [1m-U[0m
+               option)  on the current host.  A longer list format is used if this option is specified multiple times
+               and the security policy supports a verbose output format.
+
+               If a [4mcommand[24m is specified and is permitted by the security policy for the invoking user (or the,  [4muser[0m
+               specified  by the [1m-U [22moption) on the current host, the fully-qualified path to the [4mcommand[24m is displayed
+               along with any [4marg[24ms. If [1m-l [22mis specified more than once (and the  security  policy  supports  it),  the
+               matching  rule is displayed in a verbose format along with the [4mcommand[24m.  If a [4mcommand[24m is specified but
+               not allowed by the policy, [1msudo [22mwill exit with a status value of 1.
+
+       [1m-N[22m, [1m--no-update[0m
+               Do not update the user's cached credentials, even if the user successfully authenticates.  Unlike  the
+               [1m-k  [22mflag,  existing  cached  credentials are used if they are valid.  To detect when the user's cached
+               credentials are valid (or when no authentication is required), the following can be used:
+
+                   sudo -Nnv
+
+               Not all security policies support credential caching.
+
+       [1m-n[22m, [1m--non-interactive[0m
+               Avoid prompting the user for input of any kind.  If a password is required for  the  [4mcommand[24m  to  run,
+               [1msudo [22mwill display an error message and exit.
+
+       [1m-P[22m, [1m--preserve-groups[0m
+               Preserve  the  invoking user's group vector unaltered.  By default, the [4msudoers[24m policy will initialize
+               the group vector to the list of groups the target user is a member of.  The real and effective  group-
+               IDs, however, are still set to match the target user.
+
+       [1m-p [4m[22mprompt[24m, [1m--prompt[22m=[4mprompt[0m
+               Use  a  custom password prompt with optional escape sequences.  The following percent (‘%’) escape se‐
+               quences are supported by the [4msudoers[24m policy:
+
+               %H  expanded to the host name including the domain name (only if the  machine's  host  name  is  fully
+                   qualified or the [4mfqdn[24m option is set in [4msudoers[24m(5))
+
+               %h  expanded to the local host name without the domain name
+
+               %p  expanded to the name of the user whose password is being requested (respects the [4mrootpw[24m, [4mtargetpw[24m,
+                   and [4mrunaspw[24m flags in [4msudoers[24m(5))
+
+               %U  expanded  to the login name of the user the [4mcommand[24m will be run as (defaults to root unless the [1m-u[0m
+                   option is also specified)
+
+               %u  expanded to the invoking user's login name
+
+               %%  two consecutive ‘%’ characters are collapsed into a single ‘%’ character
+
+               The custom prompt will override the default prompt specified by either  the  security  policy  or  the
+               SUDO_PROMPT  environment  variable.  On systems that use PAM, the custom prompt will also override the
+               prompt specified by a PAM module unless the [4mpassprompt_override[24m flag is disabled in [4msudoers[24m.
+
+       [1m-R [4m[22mdirectory[24m, [1m--chroot[22m=[4mdirectory[0m
+               Change to the specified root [4mdirectory[24m (see [4mchroot[24m(8)) before running the [4mcommand[24m.  The security  pol‐
+               icy may return an error if the user does not have permission to specify the root directory.
+
+       [1m-r [4m[22mrole[24m, [1m--role[22m=[4mrole[0m
+               Run the [4mcommand[24m with an SELinux security context that includes the specified [4mrole[24m.
+
+       [1m-S[22m, [1m--stdin[0m
+               Write  the prompt to the standard error and read the password from the standard input instead of using
+               the terminal device.
+
+       [1m-s[22m, [1m--shell[0m
+               Run the shell specified by the SHELL environment variable if it is set or the shell specified  by  the
+               invoking  user's  password  database entry.  If a [4mcommand[24m is specified, it is passed to the shell as a
+               simple command using the [1m-c [22moption.  The [4mcommand[24m and any [4marg[24ms are concatenated, separated  by  spaces,
+               after escaping each character (including white space) with a backslash (‘\’) except for alphanumerics,
+               underscores, hyphens, and dollar signs.  If no [4mcommand[24m is specified, an interactive shell is executed.
+               Most shells behave differently when a [4mcommand[24m is specified as compared to an interactive session; con‐
+               sult the shell's manual for details.
+
+       [1m-t [4m[22mtype[24m, [1m--type[22m=[4mtype[0m
+               Run  the  [4mcommand[24m  with  an  SELinux security context that includes the specified [4mtype[24m.  If no [4mtype[24m is
+               specified, the default type is derived from the role.
+
+       [1m-U [4m[22muser[24m, [1m--other-user[22m=[4muser[0m
+               Used in conjunction with the [1m-l [22moption to list the privileges for [4muser[24m instead  of  for  the  invoking
+               user.   The security policy may restrict listing other users' privileges.  When using the [4msudoers[24m pol‐
+               icy, the [1m-U [22moption is restricted to the root user and users with either the “list”  priviege  for  the
+               specified [4muser[24m or the ability to run any [4mcommand[24m as root or [4muser[24m on the current host.
+
+       [1m-T [4m[22mtimeout[24m, [1m--command-timeout[22m=[4mtimeout[0m
+               Used  to  set  a  timeout  for the [4mcommand[24m.  If the timeout expires before the [4mcommand[24m has exited, the
+               [4mcommand[24m will be terminated.  The security policy may restrict the user's ability to set timeouts.  The
+               [4msudoers[24m policy requires that user-specified timeouts be explicitly enabled.
+
+       [1m-u [4m[22muser[24m, [1m--user[22m=[4muser[0m
+               Run the [4mcommand[24m as a user other than the default target user (usually [1mroot[22m).  The [4muser[24m may be either a
+               user name or a numeric user-ID (UID) prefixed with the ‘#’ character (e.g., ‘#0’  for  UID  0).   When
+               running  [4mcommand[24ms  as a UID, many shells require that the ‘#’ be escaped with a backslash (‘\’).  Some
+               security policies may restrict UIDs to those listed in the password database.  The [4msudoers[24m policy  al‐
+               lows  UIDs that are not in the password database as long as the [4mtargetpw[24m option is not set.  Other se‐
+               curity policies may not support this.
+
+       [1m-V[22m, [1m--version[0m
+               Print the [1msudo [22mversion string as well as the version string of any configured plugins.  If the  invok‐
+               ing  user  is  already  root, the [1m-V [22moption will display the options passed to configure when [1msudo [22mwas
+               built; plugins may display additional information such as default options.
+
+       [1m-v[22m, [1m--validate[0m
+               Update the user's cached credentials, authenticating the user if necessary.  For the  [4msudoers[24m  plugin,
+               this  extends the [1msudo [22mtimeout for another 15 minutes by default, but does not run a [4mcommand[24m.  Not all
+               security policies support cached credentials.
+
+       [1m--      [22mThe [1m-- [22mis used to delimit the end of the [1msudo [22moptions.  Subsequent options are passed to the [4mcommand[24m.
+
+       Options that take a value may only be specified once unless otherwise indicated in the description.   This  is
+       to help guard against problems caused by poorly written scripts that invoke [1msudo [22mwith user-controlled input.
+
+       Environment  variables  to be set for the [4mcommand[24m may also be passed as options to [1msudo [22min the form [4mVAR[24m=[4mvalue[24m,
+       for example LD_LIBRARY_PATH=[4m/usr/local/pkg/lib[24m.  Environment variables may be subject to restrictions  imposed
+       by  the  security  policy  plugin.  The [4msudoers[24m policy subjects environment variables passed as options to the
+       same restrictions as existing environment variables with one important difference.  If the  [4msetenv[24m  option  is
+       set  in  [4msudoers[24m, the [4mcommand[24m to be run has the SETENV tag set or the [4mcommand[24m matched is [1mALL[22m, the user may set
+       variables that would otherwise be forbidden.  See [4msudoers[24m(5) for more information.
+
+[1mCOMMAND EXECUTION[0m
+       When [1msudo [22mexecutes a [4mcommand[24m, the security policy specifies the execution environment for the [4mcommand[24m.   Typi‐
+       cally,  the  real and effective user and group and IDs are set to match those of the target user, as specified
+       in the password database, and the group vector is initialized based on the group database (unless the  [1m-P  [22mop‐
+       tion was specified).
+
+       The following parameters may be specified by security policy:
+
+       [1m•  [22mreal and effective user-ID
+
+       [1m•  [22mreal and effective group-ID
+
+       [1m•  [22msupplementary group-IDs
+
+       [1m•  [22mthe environment list
+
+       [1m•  [22mcurrent working directory
+
+       [1m•  [22mfile creation mode mask (umask)
+
+       [1m•  [22mSELinux role and type
+
+       [1m•  [22mscheduling priority (aka nice value)
+
+   [1mProcess model[0m
+       There are two distinct ways [1msudo [22mcan run a [4mcommand[24m.
+
+       If  an I/O logging plugin is configured to log terminal I/O, or if the security policy explicitly requests it,
+       a new pseudo-terminal (“pty”) is allocated and [4mfork[24m(2) is used to create a second [1msudo [22mprocess, referred to as
+       the [4mmonitor[24m.  The [4mmonitor[24m creates a new terminal session with itself as the leader and the pty as its control‐
+       ling terminal, calls [4mfork[24m(2) again, sets up the execution environment as described above, and  then  uses  the
+       [4mexecve[24m(2)  system  call to run the [4mcommand[24m in the child process.  The [4mmonitor[24m exists to relay job control sig‐
+       nals between the user's terminal and the pty the [4mcommand[24m is being run in.  This makes it possible  to  suspend
+       and  resume  the [4mcommand[24m normally.  Without the [4mmonitor[24m, the [4mcommand[24m would be in what POSIX terms an “orphaned
+       process group” and it would not receive any job control signals from the kernel.  When the [4mcommand[24m exits or is
+       terminated by a signal, the [4mmonitor[24m passes the [4mcommand[24m's exit status to the main [1msudo [22mprocess and exits.   Af‐
+       ter  receiving  the [4mcommand[24m's exit status, the main [1msudo [22mprocess passes the [4mcommand[24m's exit status to the secu‐
+       rity policy's close function, as well as the close function of any configured audit plugin, and  exits.   This
+       mode is the default for sudo versions 1.9.14 and above when using the sudoers policy.
+
+       If  no  pty  is  used,  [1msudo [22mcalls [4mfork[24m(2), sets up the execution environment as described above, and uses the
+       [4mexecve[24m(2) system call to run the [4mcommand[24m in the child process.  The main [1msudo [22mprocess waits until the  [4mcommand[0m
+       has  completed,  then passes the [4mcommand[24m's exit status to the security policy's close function, as well as the
+       close function of any configured audit plugins, and exits.  As a special case, if the policy plugin  does  not
+       define a close function, [1msudo [22mwill execute the [4mcommand[24m directly instead of calling [4mfork[24m(2) first.  The [4msudoers[0m
+       policy  plugin  will  only  define a close function when I/O logging is enabled, a pty is required, an SELinux
+       role is specified, the [4mcommand[24m has an associated timeout, or the [4mpam_session[24m or [4mpam_setcred[24m  options  are  en‐
+       abled.   Both  [4mpam_session[24m  and [4mpam_setcred[24m are enabled by default on systems using PAM.  This mode is the de‐
+       fault for sudo versions prior to 1.9.14 when using the sudoers policy.
+
+       On systems that use PAM, the security policy's close function is responsible for closing the PAM session.   It
+       may also log the [4mcommand[24m's exit status.
+
+   [1mSignal handling[0m
+       When  the  [4mcommand[24m  is run as a child of the [1msudo [22mprocess, [1msudo [22mwill relay signals it receives to the [4mcommand[24m.
+       The SIGINT and SIGQUIT signals are only relayed when the [4mcommand[24m is being run in a new pty or when the  signal
+       was  sent  by a user process, not the kernel.  This prevents the [4mcommand[24m from receiving SIGINT twice each time
+       the user enters control-C.  Some signals, such as SIGSTOP and SIGKILL, cannot be caught and thus will  not  be
+       relayed to the [4mcommand[24m.  As a general rule, SIGTSTP should be used instead of SIGSTOP when you wish to suspend
+       a [4mcommand[24m being run by [1msudo[22m.
+
+       As a special case, [1msudo [22mwill not relay signals that were sent by the [4mcommand[24m it is running.  This prevents the
+       [4mcommand[24m  from  accidentally  killing itself.  On some systems, the [4mreboot[24m(8) utility sends SIGTERM to all non-
+       system processes other than itself before rebooting the system.  This prevents [1msudo [22mfrom relaying the  SIGTERM
+       signal  it  received back to [4mreboot[24m(8), which might then exit before the system was actually rebooted, leaving
+       it in a half-dead state similar to single user mode.  Note, however, that  this  check  only  applies  to  the
+       [4mcommand[24m  run  by  [1msudo [22mand not any other processes that the [4mcommand[24m may create.  As a result, running a script
+       that calls [4mreboot[24m(8) or [4mshutdown[24m(8) via [1msudo [22mmay cause the system to end up in this undefined state unless the
+       [4mreboot[24m(8) or [4mshutdown[24m(8) are run using the [1mexec[22m() family of functions instead of [1msystem[22m() (which interposes  a
+       shell between the [4mcommand[24m and the calling process).
+
+   [1mPlugins[0m
+       Plugins may be specified via [4mPlugin[24m directives in the [4msudo.conf[24m(5) file.  They may be loaded as dynamic shared
+       objects (on systems that support them), or compiled directly into the [1msudo [22mbinary.  If no [4msudo.conf[24m(5) file is
+       present, or if it doesn't contain any [4mPlugin[24m lines, [1msudo [22mwill use [4msudoers[24m(5) for the policy, auditing, and I/O
+       logging  plugins.   See  the [4msudo.conf[24m(5) manual for details of the [4m/etc/sudo.conf[24m file and the [4msudo_plugin[24m(5)
+       manual for more information about the [1msudo [22mplugin architecture.
+
+[1mEXIT VALUE[0m
+       Upon successful execution of a [4mcommand[24m, the exit status from [1msudo [22mwill be the exit status of the program  that
+       was  executed.   If  the  [4mcommand[24m terminated due to receipt of a signal, [1msudo [22mwill send itself the same signal
+       that terminated the [4mcommand[24m.
+
+       If the [1m-l [22moption was specified without a [4mcommand[24m, [1msudo [22mwill exit with a value of 0 if the user is  allowed  to
+       run  [1msudo [22mand they authenticated successfully (as required by the security policy).  If a [4mcommand[24m is specified
+       with the [1m-l [22moption, the exit value will only be 0 if the [4mcommand[24m is permitted by the security  policy,  other‐
+       wise it will be 1.
+
+       If  there  is an authentication failure, a configuration/permission problem, or if the given [4mcommand[24m cannot be
+       executed, [1msudo [22mexits with a value of 1.  In the latter case, the error string is printed to the  standard  er‐
+       ror.   If  [1msudo [22mcannot [4mstat[24m(2) one or more entries in the user's PATH, an error is printed to the standard er‐
+       ror.  (If the directory does not exist or if it is not really a directory, the entry is ignored and  no  error
+       is printed.)  This should not happen under normal circumstances.  The most common reason for [4mstat[24m(2) to return
+       “permission  denied”  is if you are running an automounter and one of the directories in your PATH is on a ma‐
+       chine that is currently unreachable.
+
+[1mSECURITY NOTES[0m
+       [1msudo [22mtries to be safe when executing external [4mcommand[24ms.
+
+       To prevent command spoofing, [1msudo [22mchecks "." and "" (both denoting current directory) last when searching  for
+       a  [4mcommand[24m  in the user's PATH (if one or both are in the PATH).  Depending on the security policy, the user's
+       PATH environment variable may be modified, replaced, or passed unchanged to the program that [1msudo [22mexecutes.
+
+       Users should [4mnever[24m be granted [1msudo [22mprivileges to execute files that are writable by the user or that reside in
+       a directory that is writable by the user.  If the user can modify or replace the [4mcommand[24m there is  no  way  to
+       limit what additional [4mcommand[24ms they can run.
+
+       By  default, [1msudo [22mwill only log the [4mcommand[24m it explicitly runs.  If a user runs a [4mcommand[24m such as ‘sudo su’ or
+       ‘sudo sh’, subsequent [4mcommand[24ms run from that shell are not subject to [1msudo[22m's security  policy.   The  same  is
+       true  for  [4mcommand[24ms  that offer shell escapes (including most editors).  If I/O logging is enabled, subsequent
+       [4mcommand[24ms will have their input and/or output logged,  but  there  will  not  be  traditional  logs  for  those
+       [4mcommand[24ms. Because of this, care must be taken when giving users access to [4mcommand[24ms via [1msudo [22mto verify that the
+       [4mcommand[24m  does  not  inadvertently  give  the user an effective root shell.  For information on ways to address
+       this, see the [4mPreventing[24m [4mshell[24m [4mescapes[24m section in [4msudoers[24m(5).
+
+       To prevent the disclosure of potentially sensitive information, [1msudo [22mdisables core dumps by default  while  it
+       is  executing  (they  are re-enabled for the [4mcommand[24m that is run).  This historical practice dates from a time
+       when most operating systems allowed set-user-ID processes to dump core by default.  To aid in  debugging  [1msudo[0m
+       crashes,  you may wish to re-enable core dumps by setting “disable_coredump” to false in the [4msudo.conf[24m(5) file
+       as follows:
+
+           Set disable_coredump false
+
+       See the [4msudo.conf[24m(5) manual for more information.
+
+[1mENVIRONMENT[0m
+       [1msudo [22mutilizes the following environment variables.  The security policy has control over the actual content of
+       the [4mcommand[24m's environment.
+
+       EDITOR           Default editor to use in [1m-e [22m(sudoedit) mode if neither SUDO_EDITOR nor VISUAL is set.
+
+       MAIL             Set to the mail spool of the target user when the [1m-i [22moption is specified, or  when  [4menv_reset[0m
+                        is enabled in [4msudoers[24m (unless MAIL is present in the [4menv_keep[24m list).
+
+       HOME             Set  to  the  home directory of the target user when the [1m-i [22mor [1m-H [22moptions are specified, when
+                        the [1m-s [22moption is specified and [4mset_home[24m is set in [4msudoers[24m, when [4malways_set_home[24m is enabled in
+                        [4msudoers[24m, or when [4menv_reset[24m is enabled in [4msudoers[24m and HOME is  not  present  in  the  [4menv_keep[0m
+                        list.
+
+       LOGNAME          Set  to  the  login  name  of  the  target  user  when  the  [1m-i [22moption is specified, when the
+                        [4mset_logname[24m option is enabled in [4msudoers[24m, or when the [4menv_reset[24m option is enabled in  [4msudoers[0m
+                        (unless LOGNAME is present in the [4menv_keep[24m list).
+
+       PATH             May be overridden by the security policy.
+
+       SHELL            Used to determine shell to run with [1m-s [22moption.
+
+       SUDO_ASKPASS     Specifies  the path to a helper program used to read the password if no terminal is available
+                        or if the [1m-A [22moption is specified.
+
+       SUDO_COMMAND     Set to the [4mcommand[24m run by sudo, including any [4marg[24ms. The [4marg[24ms are truncated at 4096 characters
+                        to prevent a potential execution error.
+
+       SUDO_EDITOR      Default editor to use in [1m-e [22m(sudoedit) mode.
+
+       SUDO_GID         Set to the group-ID of the user who invoked sudo.
+
+       SUDO_PROMPT      Used as the default password prompt unless the [1m-p [22moption was specified.
+
+       SUDO_PS1         If set, PS1 will be set to its value for the program being run.
+
+       SUDO_UID         Set to the user-ID of the user who invoked sudo.
+
+       SUDO_USER        Set to the login name of the user who invoked sudo.
+
+       USER             Set to the same value as LOGNAME, described above.
+
+       VISUAL           Default editor to use in [1m-e [22m(sudoedit) mode if SUDO_EDITOR is not set.
+
+[1mFILES[0m
+       [4m/etc/sudo.conf[24m            [1msudo [22mfront-end configuration
+
+[1mEXAMPLES[0m
+       The following examples assume a properly configured security policy.
+
+       To get a file listing of an unreadable directory:
+
+           $ sudo ls /usr/local/protected
+
+       To list the home directory of user yaz on a machine where the file system holding  ~yaz  is  not  exported  as
+       root:
+
+           $ sudo -u yaz ls ~yaz
+
+       To edit the [4mindex.html[24m file as user www:
+
+           $ sudoedit -u www ~www/htdocs/index.html
+
+       To view system logs only accessible to root and users in the adm group:
+
+           $ sudo -g adm more /var/log/syslog
+
+       To run an editor as jim with a different primary group:
+
+           $ sudoedit -u jim -g audio ~jim/sound.txt
+
+       To shut down a machine:
+
+           $ sudo shutdown -r +15 "quick reboot"
+
+       To make a usage listing of the directories in the /home partition.  The [4mcommands[24m are run in a sub-shell to al‐
+       low the ‘cd’ command and file redirection to work.
+
+           $ sudo sh -c "cd /home ; du -s * | sort -rn > USAGE"
+
+[1mDIAGNOSTICS[0m
+       Error messages produced by [1msudo [22minclude:
+
+       [1mediting files in a writable directory is not permitted[0m
+             By  default,  [1msudoedit [22mdoes not permit editing a file when any of the parent directories are writable by
+             the invoking user.  This avoids a race condition that could allow the user  to  overwrite  an  arbitrary
+             file.  See the [4msudoedit_checkdir[24m option in [4msudoers[24m(5) for more information.
+
+       [1mediting symbolic links is not permitted[0m
+             By  default, [1msudoedit [22mdoes not follow symbolic links when opening files.  See the [4msudoedit_follow[24m option
+             in [4msudoers[24m(5) for more information.
+
+       [1meffective uid is not 0, is sudo installed setuid root?[0m
+             [1msudo [22mwas not run with root privileges.  The [1msudo [22mbinary must be owned by the root user and have the set-
+             user-ID bit set.  Also, it must not be located on a file system mounted with the ‘nosuid’ option  or  on
+             an NFS file system that maps uid 0 to an unprivileged uid.
+
+       [1meffective  uid  is  not 0, is sudo on a file system with the 'nosuid' option set or an NFS file system without[0m
+             [1mroot privileges?[0m
+             [1msudo [22mwas not run with root privileges.  The [1msudo [22mbinary has the proper  owner  and  permissions  but  it
+             still  did  not  run  with root privileges.  The most common reason for this is that the file system the
+             [1msudo [22mbinary is located on is mounted with the ‘nosuid’ option or it is an NFS file system that maps  uid
+             0 to an unprivileged uid.
+
+       [1mfatal error, unable to load plugins[0m
+             An error occurred while loading or initializing the plugins specified in [4msudo.conf[24m(5).
+
+       [1minvalid environment variable name[0m
+             One  or  more environment variable names specified via the [1m-E [22moption contained an equal sign (‘=’).  The
+             arguments to the [1m-E [22moption should be environment variable names without an associated value.
+
+       [1mno password was provided[0m
+             When [1msudo [22mtried to read the password, it did not receive any characters.  This may happen if no terminal
+             is available (or the [1m-S [22moption is specified) and the standard input has been redirected from [4m/dev/null[24m.
+
+       [1ma terminal is required to read the password[0m
+             [1msudo [22mneeds to read the password but there is no mechanism available for it to do so.  A terminal is  not
+             present  to read the password from, [1msudo [22mhas not been configured to read from the standard input, the [1m-S[0m
+             option was not used, and no askpass helper has been specified either via the [4msudo.conf[24m(5)  file  or  the
+             SUDO_ASKPASS environment variable.
+
+       [1mno writable temporary directory found[0m
+             [1msudoedit [22mwas unable to find a usable temporary directory in which to store its intermediate files.
+
+       [1mThe [22m“no new privileges” flag is set, which prevents sudo from running as root.
+             [1msudo [22mwas run by a process that has the Linux “no new privileges” flag is set.  This causes the set-user-
+             ID  bit  to  be  ignored when running an executable, which will prevent [1msudo [22mfrom functioning.  The most
+             likely cause for this is running [1msudo [22mwithin a container that sets this flag.  Check  the  documentation
+             to see if it is possible to configure the container such that the flag is not set.
+
+       [1msudo must be owned by uid 0 and have the setuid bit set[0m
+             [1msudo  [22mwas not run with root privileges.  The [1msudo [22mbinary does not have the correct owner or permissions.
+             It must be owned by the root user and have the set-user-ID bit set.
+
+       [1msudoedit is not supported on this platform[0m
+             It is only possible to run [1msudoedit [22mon systems that support setting the effective user-ID.
+
+       [1mtimed out reading password[0m
+             The user did not enter a password before the password timeout (5 minutes by default) expired.
+
+       [1myou do not exist in the passwd database[0m
+             Your user-ID does not appear in the system passwd database.
+
+       [1myou may not specify environment variables in edit mode[0m
+             It is only possible to specify environment variables when running a [4mcommand[24m.  When editing a  file,  the
+             editor is run with the user's environment unmodified.
+
+[1mSEE ALSO[0m
+       [4msu[24m(1),  [4mstat[24m(2),  [4mlogin_cap[24m(3),  [4mpasswd[24m(5),  [4msudo.conf[24m(5),  [4msudo_plugin[24m(5),  [4msudoers[24m(5), [4msudoers_timestamp[24m(5),
+       [4msudoreplay[24m(8), [4mvisudo[24m(8)
+
+[1mHISTORY[0m
+       See the HISTORY.md file in the [1msudo [22mdistribution (https://www.sudo.ws/about/history/) for a brief  history  of
+       sudo.
+
+[1mAUTHORS[0m
+       Many people have worked on [1msudo [22mover the years; this version consists of code written primarily by:
+
+             Todd C. Miller
+
+       See the CONTRIBUTORS.md file in the [1msudo [22mdistribution (https://www.sudo.ws/about/contributors/) for an exhaus‐
+       tive list of people who have contributed to [1msudo[22m.
+
+[1mCAVEATS[0m
+       There  is  no  easy  way  to prevent a user from gaining a root shell if that user is allowed to run arbitrary
+       [4mcommands[24m via [1msudo[22m.  Also, many programs (such as editors) allow the user to run [4mcommand[24ms  via  shell  escapes,
+       thus  avoiding  [1msudo[22m's  checks.   However,  on  most  systems it is possible to prevent shell escapes with the
+       [4msudoers[24m(5) plugin's [4mnoexec[24m functionality.
+
+       It is not meaningful to run the ‘cd’ [4mcommand[24m directly via sudo, e.g.,
+
+           $ sudo cd /usr/local/protected
+
+       since when the [4mcommand[24m exits the parent process (your shell) will still be the same.  The  [1m-D  [22moption  can  be
+       used to run a [4mcommand[24m in a specific [4mdirectory[24m.
+
+       Running  shell  scripts via [1msudo [22mcan expose the same kernel bugs that make set-user-ID shell scripts unsafe on
+       some operating systems (if your OS has a /dev/fd/ directory, set-user-ID shell scripts are generally safe).
+
+[1mBUGS[0m
+       If you believe you have found a bug in [1msudo[22m, you can submit a bug report at https://bugzilla.sudo.ws/
+
+[1mSUPPORT[0m
+       Limited  free  support  is  available  via  the  sudo-users  mailing   list,   see   https://www.sudo.ws/mail‐
+       man/listinfo/sudo-users to subscribe or search the archives.
+
+[1mDISCLAIMER[0m
+       [1msudo  [22mis  provided  “AS  IS” and any express or implied warranties, including, but not limited to, the implied
+       warranties of merchantability and fitness for a particular purpose are disclaimed.  See  the  LICENSE.md  file
+       distributed with [1msudo [22mor https://www.sudo.ws/about/license/ for complete details.
+
+Sudo 1.9.15p5                                       August 9, 2023                                            [4mSUDO[24m(8)

@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.header {
+    background-color: #3498db; /* Replace with your desired color */
+}
+.x-nav-link {
+    color: #ffffff !important;
+}

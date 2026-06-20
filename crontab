@@ -1,0 +1,4 @@
+# Run the script every 14 hours
+# 0 */14 * * * /usr/local/bin/run-script.sh >> /var/log/cron.log 2>&1
+#* * * * * /usr/local/bin/run-script.sh >> /var/log/cron.log 2>&1
+timestamps
